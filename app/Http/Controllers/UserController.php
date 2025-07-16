@@ -9,12 +9,14 @@ use App\Models\Role;
 use App\Models\State;
 use App\Models\Lga;
 use App\Models\Ward;
+use Illuminate\Container\Attributes\Log;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rules;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Log as FacadesLog;
 
 class UserController extends Controller
 {
@@ -73,6 +75,7 @@ class UserController extends Controller
 
     public function update(Request $request, User $user)
     {
+        try{
         $this->authorize('manage_users');
         
         $request->validate([
@@ -102,6 +105,11 @@ class UserController extends Controller
         }
         return redirect()->route('users.index')
             ->with('success', 'User updated successfully.');
+        }catch(\Exception $e){
+            FacadesLog::error($e->getMessage());
+            return redirect()->route('users.index')
+                ->with('error', $e->getMessage());
+        }
     }
 
     public function destroy(User $user)
