@@ -17,6 +17,7 @@ class DatabaseSeeder extends Seeder
         $this->call(StateSeeder::class);
         $this->call(LGASeeder::class);
         $this->call(WardSeeder::class);
+        $this->call(RolePermissionSeeder::class);
 
         User::factory()->create([
             'name' => 'Test User',

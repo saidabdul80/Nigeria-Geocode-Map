@@ -17,6 +17,7 @@ class Record extends Model
     protected $fillable = [
         'state_id',
         'lga_id',
+        'ward_id',
         'data'
     ];
 

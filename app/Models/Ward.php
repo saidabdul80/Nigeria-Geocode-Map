@@ -14,4 +14,14 @@ class Ward extends Model
         return $this->name;
     }
 
+    public function userWardPermissions()
+    {
+        return $this->belongsToMany(User::class, 'user_ward_permissions');
+    }
+
+    public function lga()
+    {
+        return $this->belongsTo(Lga::class);
+    }
+
 }

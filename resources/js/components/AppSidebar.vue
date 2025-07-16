@@ -3,20 +3,16 @@ import NavFooter from '@/components/NavFooter.vue';
 import NavMain from '@/components/NavMain.vue';
 import NavUser from '@/components/NavUser.vue';
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from '@/components/ui/sidebar';
-import { Link } from '@inertiajs/vue3';
-import { BookOpen, Folder, LayoutGrid, SignalMedium } from 'lucide-vue-next';
+import { Link, usePage } from '@inertiajs/vue3';
+import { BookOpen, Folder, LayoutGrid, SignalMedium, User, Users2 } from 'lucide-vue-next';
 import AppLogo from './AppLogo.vue';
 
+const page = usePage();
 const mainNavItems = [
-    {
-        title: 'Dashboard',
-        href: '/records',
-        icon: LayoutGrid,
-    },
+   
 ];
 
-  const stateCoordinates = [
-    'nigeria',
+const stateCoordinates = [
     'abia',
     'adamawa',
     'akwaibom',
@@ -55,15 +51,49 @@ const mainNavItems = [
     'zamfara',
     'fct',
 ];
-stateCoordinates.forEach(state => {
-    mainNavItems.push({
-        title: state,
-        href: '/dashboard/' + state,
-        icon: SignalMedium,
+if(page.props.auth?.user?.roles.map(t=>t.name?.toLowerCase()?.replace(' ','')).includes('state_editor')) {
+    mainNavItems.push(
+       {
+        title: 'Data Management',
+        href: '/records',
+        icon: LayoutGrid,
     });
+}
+
+if(page.props.auth?.user?.roles.map(t=>t.name?.toLowerCase()?.replace(' ','')).includes('admin')) {
+    mainNavItems.push({
+        title: 'User Management',
+        href: '/users',
+        icon: Users2,
+        permission: 'manage_users',
+    });
+      mainNavItems.push({
+            title: 'nigeria',
+            href: '/dashboard/' + 'nigeria',
+            icon: SignalMedium,
+        });
+}
+
+
+
+
+stateCoordinates.forEach(state => {
+
+    if(page.props.auth.states.map(t=>t.name?.toLowerCase()?.replace(' ','')).includes(state.toLowerCase())) {
+        mainNavItems.push({
+            title: state,
+            href: '/dashboard/' + state,
+            icon: SignalMedium,
+        });
+    }
 });
 
 const footerNavItems= [
+    {
+        title: 'Profile',
+        href: '/profile',
+        icon: User,
+    },
     // {
     //     title: 'Github Repo',
     //     href: 'https://github.com/laravel/vue-starter-kit',

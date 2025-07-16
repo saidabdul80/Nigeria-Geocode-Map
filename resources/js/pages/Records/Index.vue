@@ -15,6 +15,7 @@ import { useToast } from 'primevue/usetoast'
 import ConfirmDialog from 'primevue/confirmdialog'
 import { useConfirm } from 'primevue/useconfirm'
 import Dropdown from 'primevue/dropdown'
+import axios from 'axios'
 
 const toast = useToast()
 const confirm = useConfirm()
@@ -40,6 +41,7 @@ const props = defineProps({
 const form = useForm({
   state_id: null,
   lga_id: null,
+  ward_id: null,
   record: []
 })
 
@@ -49,6 +51,7 @@ const editingId = ref(null)
 const availableLgas = ref([])
 const currentDataKey = ref('')
 const currentDataValue = ref('')
+const currentDataOutlook = ref('')
 
 // Computed - Safely access data
 const filteredRecords = computed(() => {
@@ -60,6 +63,21 @@ const filteredRecords = computed(() => {
     dataArray: record.data ? Object.entries(record.data).map(([key, value]) => ({ key, value })) : []
   }))
 })
+
+// Add availableWards ref
+const availableWards = ref([]);
+
+
+watch(() => form.lga_id, (newLgaId) => {
+  if (newLgaId) {
+    axios.get(`/lgas/${newLgaId}/wards`)
+      .then(response => {
+        availableWards.value = response.data;
+      });
+  } else {
+    availableWards.value = [];
+  }
+}, { immediate: true });
 
 // Watch for state changes - fixed implementation
 watch(() => form.state_id, async (newStateId) => {
@@ -86,15 +104,20 @@ watch(() => form.state_id, async (newStateId) => {
 // Methods
 const addDataField = () => {
   if (currentDataKey.value && currentDataValue.value) {
-    console.log(form,333)
     form.record.push({
       key: currentDataKey.value,
-      value: currentDataValue.value
+      value: currentDataValue.value,
+      outlook: currentDataOutlook.value
     })
     currentDataKey.value = ''
     currentDataValue.value = ''
+    currentDataOutlook.value = ''
   }
 }
+
+const filteredStates = computed(() => {
+  return props.states;
+});
 
 const removeDataField = (index) => {
   form.record.splice(index, 1)
@@ -105,20 +128,24 @@ const editRecord = (record) => {
   form.state_id = record.state_id
   form.lga_id = record.lga_id
   // Safely handle data access
-  form.record = record.data ? Object.entries(record.data).map(([key, value]) => ({ key, value })) : []
+  form.record = record.data;
   showModal.value = true
 }
 
 const submitForm = () => {
-  const formattedData = form.record.reduce((acc, item) => {
-    acc[item.key] = item.value
-    return acc
-  }, {})
+//   const formattedData = form.record.reduce((acc, item) => {
+//     acc[item.key] = {
+//       key: item.key,
+//       value: item.value,
+//       outlook: item.outlook
+//     };
+//     return acc;
+//   }, {});
 
   const payload = {
     state_id: form.state_id,
     lga_id: form.lga_id,
-    data: formattedData
+    data:form.record
   }
 
   if (editingId.value) {
@@ -253,14 +280,14 @@ const onPage = (event) => {
         removableSort
       >
         <Column field="state_name" header="State" sortable></Column>
-        <Column field="lga_name" header="LGA" sortable></Column>
+        <Column field="lga.name" header="LGA" sortable></Column>
         <Column header="Data">
           <template #body="{ data }">
             <div class="flex flex-wrap gap-2">
               <Tag 
                 v-for="(value, key) in data.data" 
                 :key="key" 
-                :value="`${key}: ${value}`"
+                :value="`${value.key}: ${value.outlook} - ${value.value}`"
                 severity="info"
               />
             </div>
@@ -305,7 +332,7 @@ const onPage = (event) => {
           <Dropdown 
             id="state"
             v-model="form.state_id" 
-            :options="states" 
+            :options="filteredStates" 
             optionLabel="name" 
             optionValue="id"
             placeholder="Select a State" 
@@ -330,6 +357,19 @@ const onPage = (event) => {
           />
           <small v-if="form.errors.lga_id" class="p-error">{{ form.errors.lga_id }}</small>
         </div>
+        <div class="flex flex-col gap-2">
+            <label for="ward" class="font-medium">Ward</label>
+            <Dropdown 
+                id="ward"
+                v-model="form.ward_id" 
+                :options="availableWards" 
+                optionLabel="name" 
+                optionValue="id"
+                placeholder="Select a Ward" 
+                class="w-full"
+                :disabled="!form.lga_id"
+            />
+        </div>
 
         <div class="flex flex-col gap-2">
           <label class="font-medium">Weather Data</label>
@@ -342,6 +382,7 @@ const onPage = (event) => {
             >
               <div>
                 <span class="font-medium">{{ item.key }}:</span>
+                <span class="ml-2">{{ item.outlook }} :</span>
                 <span class="ml-2">{{ item.value }}</span>
               </div>
               <Button 
@@ -353,22 +394,27 @@ const onPage = (event) => {
               />
             </div>
 
-            <div class="flex gap-2">
+            <div class="grid grid-cols-7 gap-2">
               <Dropdown 
                 v-model="currentDataKey" 
                 :options="options" 
                 placeholder="Select data type"
-                class="flex-1"
+                class="flex-1 col-span-2"
+              />
+               <InputText 
+                v-model="currentDataOutlook" 
+                placeholder="Outlook" 
+                class="flex-1 col-span-2"
               />
               <InputText 
                 v-model="currentDataValue" 
                 placeholder="Value" 
-                class="flex-1"
+                class="flex-1 col-span-2"
               />
               <Button 
                 icon="pi pi-plus" 
                 @click="addDataField" 
-                :disabled="!currentDataKey || !currentDataValue"
+                :disabled="!currentDataKey || (!currentDataValue || !currentDataOutlook)"
                 severity="secondary"
               />
             </div>

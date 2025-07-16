@@ -32,4 +32,10 @@ class Lga extends Model
     {
         return $this->name;
     }
+
+     public function userLgaPermissions()
+    {
+        return $this->belongsToMany(User::class, 'user_lga_permissions');
+    }
+
 }
