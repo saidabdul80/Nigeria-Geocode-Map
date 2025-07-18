@@ -10,6 +10,7 @@ use App\Models\Ward;
 use Carbon\Carbon;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 
 class RecordController extends Controller
@@ -188,73 +189,143 @@ class RecordController extends Controller
     }
 
 
-    public function dashboard(Request $request, $state = null)
-    {
-        $heatmapData = Record::with('lga');
-        if ($state != 'nigeria') {
-            $query = $state;
-            if ($state == 'akwaibom') {
-                $query = 'akwa';
-            }
+    // public function dashboard(Request $request, $state = null)
+    // {
+    //     $heatmapData = Record::with('lga');
+    //     if ($state != 'nigeria') {
+    //         $query = $state;
+    //         if ($state == 'akwaibom') {
+    //             $query = 'akwa';
+    //         }
 
-            if ($state == 'crossriver') {
-                $query = 'cross';
-            }
+    //         if ($state == 'crossriver') {
+    //             $query = 'cross';
+    //         }
 
-            $heatmapData->whereHas('state', function ($q) use ($query) {
-                $q->where('name', 'like', "%$query%");
-            });
-        }
+    //         $heatmapData->whereHas('state', function ($q) use ($query) {
+    //             $q->where('name', 'like', "%$query%");
+    //         });
+    //     }
 
-        $projectOutlooks = ProjectOutlook::with('lga')
-        ->where('project_year', date('Y'))
-        ->get()
-        ->keyBy('lga_id');
+    //     $projectOutlooks = ProjectOutlook::with('lga')
+    //     ->where('project_year', date('Y'))
+    //     ->get()
+    //     ->keyBy('lga_id');
 
-        $heatmapData = $heatmapData->get();
-            //->groupBy('lga_id')
-            if($state == 'nigeria'){
-                $heatmapData = $heatmapData->groupBy('state_id');
-            }else{
-                $heatmapData = $heatmapData->groupBy('ward_id');
-            }
+    //     $heatmapData = $heatmapData->get();
+    //         //->groupBy('lga_id')
+    //         if($state == 'nigeria'){
+    //             $heatmapData = $heatmapData->groupBy('state_id');
+    //         }else{
+    //             $heatmapData = $heatmapData->groupBy('ward_id');
+    //         }
 
-        $heatmapData = $heatmapData->map(function ($records, $lgaId) use ($projectOutlooks) {
-                $lga = $records->first()->lga;
+    //     $heatmapData = $heatmapData->map(function ($records, $lgaId) use ($projectOutlooks) {
+    //             $lga = $records->first()->lga;
                
             
-                $totalChange = $records->sum(function ($record) {
-                    // $rc = collect($record->data)->firstWhere('key','change');
-                    // return intval($rc['value'] ?? 0);
-                     return collect($record->data)
-                        ->filter(fn($item) => $item['key'] === 'change')
-                        ->sum(fn($item) => intval($item['value'] ?? 0));
+    //             $totalChange = $records->sum(function ($record) {
+    //                 // $rc = collect($record->data)->firstWhere('key','change');
+    //                 // return intval($rc['value'] ?? 0);
+    //                  return collect($record->data)
+    //                     ->filter(fn($item) => $item['key'] === 'change')
+    //                     ->sum(fn($item) => intval($item['value'] ?? 0));
+    //             });
+
+    //             $projectOutlook = $projectOutlooks->get($lga->id);
+    //             $outlookValue = $projectOutlook ? $projectOutlook->outlook : 0;
+
+    //          // Calculate percentage (handle division by zero)
+    //            $percentage = $outlookValue != 0 
+    //             ? ($totalChange / $outlookValue) * 100 
+    //             : 0;
+    //             return [
+    //                 'lat' => $lga->latitude,
+    //                 'lng' => $lga->longitude,
+    //                 'change' => $totalChange,
+    //                 'outlook' => $outlookValue,
+    //                 'has_outlook' => $projectOutlook !== null,
+    //                 'percentage' => round($percentage, 2),
+    //                 'lga_name' => $lga->name,
+    //                 'state_name' => $lga->state->name
+    //             ];
+    //         })
+    //         ->values()
+    //         ->toArray();
+            
+    //     return Inertia::render('Dashboard', [
+    //         'region' => $state ?? '',
+    //         'heatData' => $heatmapData,
+    //     ]);
+    // }
+
+
+        public function dashboard(Request $request, $state = null)
+        {
+            $year = date('Y');
+
+            $query = DB::table('records')
+                ->join('lgas', 'records.lga_id', '=', 'lgas.id')
+                ->join('states', 'lgas.state_id', '=', 'states.id')
+                ->leftJoin('project_outlooks', function ($join) use ($year) {
+                    $join->on('project_outlooks.lga_id', '=', 'lgas.id')
+                        ->where('project_outlooks.project_year', '=', $year);
                 });
 
-                $projectOutlook = $projectOutlooks->get($lga->id);
-                $outlookValue = $projectOutlook ? $projectOutlook->outlook : 0;
+            if ($state !== 'nigeria') {
+                $stateSlug = match ($state) {
+                    'akwaibom' => 'akwa',
+                    'crossriver' => 'cross',
+                    default => $state,
+                };
 
-             // Calculate percentage (handle division by zero)
-               $percentage = $outlookValue != 0 
-                ? ($totalChange / $outlookValue) * 100 
-                : 0;
+                $query->where('states.name', 'like', "%$stateSlug%");
+            }
+
+            $query->selectRaw('
+                lgas.id as lga_id,
+                lgas.name as lga_name,
+                lgas.latitude as lat,
+                lgas.longitude as lng,
+                states.name as state_name,
+                states.id as state_id,
+                COALESCE(SUM(
+                    CASE 
+                        WHEN JSON_EXTRACT(records.data, "$[*].key") LIKE \'%"change"%\' 
+                        THEN JSON_EXTRACT(records.data, "$[*].value")
+                        ELSE 0 
+                    END
+                ), 0) as total_change,
+                COALESCE(project_outlooks.outlook, 0) as outlook
+            ');
+
+            if ($state === 'nigeria') {
+                $query->groupBy('states.id');
+            } else {
+                $query->groupBy('lgas.id');
+            }
+
+            $heatmapData = $query->get()->map(function ($item) {
+                $percentage = $item->outlook != 0
+                    ? ($item->total_change / $item->outlook) * 100
+                    : 0;
+
                 return [
-                    'lat' => $lga->latitude,
-                    'lng' => $lga->longitude,
-                    'change' => $totalChange,
-                    'outlook' => $outlookValue,
-                    'has_outlook' => $projectOutlook !== null,
+                    'lat' => $item->lat,
+                    'lng' => $item->lng,
+                    'change' => $item->total_change,
+                    'outlook' => $item->outlook,
+                    'has_outlook' => $item->outlook != 0,
                     'percentage' => round($percentage, 2),
-                    'lga_name' => $lga->name,
-                    'state_name' => $lga->state->name
+                    'lga_name' => $item->lga_name,
+                    'state_name' => $item->state_name,
                 ];
-            })
-            ->values()
-            ->toArray();
-            
-        return Inertia::render('Dashboard', [
-            'region' => $state ?? '',
-            'heatData' => $heatmapData,
-        ]);
-    }
+            });
+
+            return Inertia::render('Dashboard', [
+                'region' => $state ?? '',
+                'heatData' => $heatmapData,
+            ]);
+        }
+
 }
