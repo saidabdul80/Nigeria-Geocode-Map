@@ -16,7 +16,7 @@ return new class extends Migration
             $table->unsignedBigInteger('state_id');
             $table->unsignedBigInteger('lga_id');
             $table->json('data'); // For JSON data storage
-            
+            $table->integer('year')->nullable();
             // Foreign key constraints (assuming states and lgas tables exist)
             $table->foreign('state_id')
                   ->references('id')
