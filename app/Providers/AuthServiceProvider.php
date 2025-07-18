@@ -7,9 +7,12 @@ use App\Models\User;
 use App\Models\Record;
 use App\Models\State;
 use App\Models\Lga;
+use App\Models\ProjectOutlook;
 use App\Models\Ward;
+use App\Policies\ProjectOutlookPolicy;
 use App\Policies\UserPolicy;
 use App\Policies\RecordPolicy;
+use App\Services\GateRegistrar;
 use Illuminate\Foundation\Support\Providers\AuthServiceProvider as ServiceProvider;
 use Illuminate\Support\Facades\Gate;
 
@@ -23,6 +26,7 @@ class AuthServiceProvider extends ServiceProvider
     protected $policies = [
         User::class => UserPolicy::class,
         Record::class => RecordPolicy::class,
+        ProjectOutlook::class => ProjectOutlookPolicy::class,
         // Add other model-policy mappings as needed
     ];
 
@@ -32,57 +36,59 @@ class AuthServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->registerPolicies();
+        GateRegistrar::register(); 
+        // // Define gates for user management
+        // Gate::define('manage_users', function (User $user) {
+        //     return $user->hasPermission('manage_users');
+        // });
 
-        // Define gates for user management
-        Gate::define('manage_users', function (User $user) {
-            return $user->hasPermission('manage_users');
-        });
+        // // Define gates for record management
+        // Gate::define('view_records', function (User $user) {
+        //     return $user->hasPermission('view_records');
+        // });
 
-        // Define gates for record management
-        Gate::define('view_records', function (User $user) {
-            return $user->hasPermission('view_records');
-        });
+        // Gate::define('create_records', function (User $user) {
+        //     return $user->hasPermission('create_records');
+        // });
 
-        Gate::define('create_records', function (User $user) {
-            return $user->hasPermission('create_records');
-        });
+        // Gate::define('edit_records', function (User $user) {
+        //     return $user->hasPermission('edit_records');
+        // });
 
-        Gate::define('edit_records', function (User $user) {
-            return $user->hasPermission('edit_records');
-        });
+        // Gate::define('delete_records', function (User $user) {
+        //     return $user->hasPermission('delete_records');
+        // });
 
-        Gate::define('delete_records', function (User $user) {
-            return $user->hasPermission('delete_records');
-        });
+        // // Define state-level permissions
+        // Gate::define('manage_state_records', function (User $user, State $state) {
+        //     if ($user->hasPermission('manage_state_records')) {
+        //         return $user->statePermissions->contains($state);
+        //     }
+        //     return false;
+        // });
 
-        // Define state-level permissions
-        Gate::define('manage_state_records', function (User $user, State $state) {
-            if ($user->hasPermission('manage_state_records')) {
-                return $user->statePermissions->contains($state);
-            }
-            return false;
-        });
+        // // Define LGA-level permissions
+        // Gate::define('manage_lga_records', function (User $user, Lga $lga) {
+        //     if ($user->hasPermission('manage_lga_records')) {
+        //         return $user->lgaPermissions->contains($lga);
+        //     }
+        //     return false;
+        // });
 
-        // Define LGA-level permissions
-        Gate::define('manage_lga_records', function (User $user, Lga $lga) {
-            if ($user->hasPermission('manage_lga_records')) {
-                return $user->lgaPermissions->contains($lga);
-            }
-            return false;
-        });
+        // // Global admin gate
+        // Gate::define('is_admin', function (User $user) {
+        //     return $user->hasRole('admin');
+        // });
 
-        // Global admin gate
-        Gate::define('is_admin', function (User $user) {
-            return $user->hasRole('admin');
-        });
+        // Gate::define('manage_ward_records', function (User $user, Ward $ward) {
+        //     if ($user->hasPermission('manage_ward_records')) {
+        //         return $user->wardPermissions->contains($ward) || 
+        //             $user->lgaPermissions->contains($ward->lga) ||
+        //             $user->statePermissions->contains($ward->lga->state);
+        //     }
+        //     return false;
+        // });
 
-        Gate::define('manage_ward_records', function (User $user, Ward $ward) {
-            if ($user->hasPermission('manage_ward_records')) {
-                return $user->wardPermissions->contains($ward) || 
-                    $user->lgaPermissions->contains($ward->lga) ||
-                    $user->statePermissions->contains($ward->lga->state);
-            }
-            return false;
-        });
+        
     }
 }

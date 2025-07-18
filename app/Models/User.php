@@ -53,6 +53,13 @@ class User extends Authenticatable
         return $this->belongsToMany(Role::class);
     }
 
+    public function permissions()
+    {
+        return Permission::whereHas('roles.users', function ($query) {
+            $query->where('users.id', $this->id);
+        })->get();
+    }
+
     public function statePermissions()
     {
         return $this->belongsToMany(State::class, 'user_state_permissions');

@@ -38,4 +38,8 @@ class Lga extends Model
         return $this->belongsToMany(User::class, 'user_lga_permissions');
     }
 
+    public function projectOutlooks()
+    {
+        return $this->hasMany(ProjectOutlook::class);
+    }
 }

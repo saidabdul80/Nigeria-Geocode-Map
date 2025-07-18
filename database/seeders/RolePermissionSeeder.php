@@ -35,6 +35,10 @@ class RolePermissionSeeder extends Seeder
             'delete_records' => 'Delete Records',
             'manage_state_records' => 'Manage State Records',
             'manage_lga_records' => 'Manage LGA Records',
+            'view_project_outlooks' => 'View Project Outlooks',
+            'create_project_outlooks' => 'Create Project Outlooks',
+            'edit_project_outlooks' => 'Edit Project Outlooks',
+            'delete_project_outlooks' => 'Delete Project Outlooks',
         ];
 
         foreach ($permissions as $name => $desc) {
@@ -49,12 +53,18 @@ class RolePermissionSeeder extends Seeder
         ])->get());
         
         $stateEditorRole->permissions()->attach(Permission::whereIn('name', [
-            'view_records', 'create_records', 'edit_records', 'manage_state_records'
+            'view_records', 'create_records', 'edit_records', 'manage_state_records',
+             'view_project_outlooks',
+            'create_project_outlooks',
+            'edit_project_outlooks'
         ])->get());
         
         $lgaEditorRole->permissions()->attach(Permission::whereIn('name', [
             'view_records', 'create_records', 'edit_records', 'manage_lga_records'
         ])->get());
+
+      //  $adminRole->permissions()->attach(Permission::where('name', 'like', '%project_outlooks%')->get());
+    
 
         // Assign admin role to first user
         $adminUser->roles()->attach($adminRole);

@@ -182,6 +182,25 @@ export default {
             info: null,
         };
     },
+    computed:{
+        mapFeatures(){
+            return this.heatData.map(item => ({
+                type: 'Feature',
+                geometry: {
+                    type: 'Point',
+                    coordinates: [item.lng, item.lat]
+                },
+                properties: {
+                    lgaName: item.lga_name,
+                    stateName: item.state_name,
+                    change: item.change,
+                    outlook: item.outlook,
+                    percentage: item.percentage,
+                    hasOutlook: item.has_outlook
+                }
+            }));
+        }
+    },
     mounted() {
         this.loadMap();
         this.info = document.getElementById('mapInfo');
@@ -274,6 +293,7 @@ export default {
                 f.set('change', 0);
                 f.set('outlook', 0);
                 f.set('percentage', 0);
+                f.set('hasOutlook', false);
             });
 
             // Sum changes and outlooks for each state
@@ -296,6 +316,8 @@ export default {
 
                     containingFeature.set('change', currentChange + (dataPoint.change || 0));
                     containingFeature.set('outlook', currentOutlook + (dataPoint.outlook || 0));
+                    containingFeature.set('hasOutlook', dataPoint.has_outlook);
+                    
 
                     // Calculate percentage if outlook is not zero
                     if (currentOutlook + (dataPoint.outlook || 0) > 0) {
@@ -334,6 +356,7 @@ export default {
 
         displayFeatureInfo(pixel, feature) {
             if (feature) {
+                 const props = feature.getProperties();
                 this.info.style.left = pixel[0] + 'px';
                 this.info.style.top = pixel[1] + 'px';
                 if (feature !== this.currentFeature) {
@@ -356,10 +379,20 @@ export default {
                     }
 
                     this.info.innerHTML = `
-        <div class="font-bold">${stateName}</div>
-        <div class="text-sm">Change: ${change}</div>
-        <div class="text-sm ${colorClass}">Percentage: ${percentage.toFixed(2)}%</div>
-      `;
+                        <div class="font-bold">${stateName}</div>
+                        <div class="text-sm">Current Change: ${change}</div>
+                    `;
+                     if (props.hasOutlook) {
+                        this.info.innerHTML += `
+                            <div class="text-sm">Project Outlook: ${props.outlook}</div>
+                            <div class="text-sm ${props.percentage >= 70 ? 'text-green-500' : 
+                                                props.percentage >= 45 ? 'text-amber-500' : 'text-red-500'}">
+                            Achievement: ${props.percentage.toFixed(2)}%
+                            </div>
+                        `;
+                    } else {
+                        this.info.innerHTML += `<div class="text-sm text-gray-500">No project outlook data</div>`;
+                    }
                 }
             } else {
                 this.info.style.visibility = 'hidden';

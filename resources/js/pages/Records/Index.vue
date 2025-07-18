@@ -49,7 +49,7 @@ const form = useForm({
 const showModal = ref(false)
 const editingId = ref(null)
 const availableLgas = ref([])
-const currentDataKey = ref('')
+const currentDataKey = ref('change')
 const currentDataValue = ref('')
 const currentDataOutlook = ref('')
 
@@ -287,7 +287,7 @@ const onPage = (event) => {
               <Tag 
                 v-for="(value, key) in data.data" 
                 :key="key" 
-                :value="`${value.key}: ${value.outlook} - ${value.value}`"
+                :value="`${value.key}:${value.value}`"
                 severity="info"
               />
             </div>
@@ -372,7 +372,7 @@ const onPage = (event) => {
         </div>
 
         <div class="flex flex-col gap-2">
-          <label class="font-medium">Weather Data</label>
+          <label class="font-medium">Report Data</label>
           <small v-if="form.errors.data" class="p-error">{{ form.errors.data }}</small>
           <div class="flex flex-col gap-3">
             <div 
@@ -401,11 +401,11 @@ const onPage = (event) => {
                 placeholder="Select data type"
                 class="flex-1 col-span-2"
               />
-               <InputText 
+               <!-- <InputText 
                 v-model="currentDataOutlook" 
                 placeholder="Outlook" 
                 class="flex-1 col-span-2"
-              />
+              /> -->
               <InputText 
                 v-model="currentDataValue" 
                 placeholder="Value" 
@@ -414,7 +414,7 @@ const onPage = (event) => {
               <Button 
                 icon="pi pi-plus" 
                 @click="addDataField" 
-                :disabled="!currentDataKey || (!currentDataValue || !currentDataOutlook)"
+                :disabled="!currentDataKey || (!currentDataValue)"
                 severity="secondary"
               />
             </div>

@@ -3,9 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Models\Lga;
+use App\Models\ProjectOutlook;
 use App\Models\Record;
 use App\Models\State;
 use App\Models\Ward;
+use Carbon\Carbon;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -93,7 +95,6 @@ class RecordController extends Controller
             ],
             'record' => 'required|array',
             'record.*.key' => 'required|string',
-            'record.*.outlook' => 'required|string',
             'record.*.value' => 'nullable|string',
         ]);
 
@@ -107,12 +108,12 @@ class RecordController extends Controller
             abort(403, 'You do not have permission to create records for this ward.');
         }
 
-        Record::create([
+        Record::updateOrCreate([
             'state_id' => $validated['state_id'],
             'lga_id' => $validated['lga_id'],
             'ward_id' => $request->ward_id, 
-            'data' => $request->record 
-        ]);
+            'year' => Carbon::now()->year
+        ],[ 'data' => $request->record]);
         return redirect()->route('records.index')
             ->with('success', 'Record created successfully.');
     }
@@ -205,6 +206,11 @@ class RecordController extends Controller
             });
         }
 
+        $projectOutlooks = ProjectOutlook::with('lga')
+        ->where('project_year', date('Y'))
+        ->get()
+        ->keyBy('lga_id');
+
         $heatmapData = $heatmapData->get();
             //->groupBy('lga_id')
             if($state == 'nigeria'){
@@ -213,15 +219,10 @@ class RecordController extends Controller
                 $heatmapData = $heatmapData->groupBy('ward_id');
             }
 
-        $heatmapData = $heatmapData->map(function ($records, $lgaId) {
+        $heatmapData = $heatmapData->map(function ($records, $lgaId) use ($projectOutlooks) {
                 $lga = $records->first()->lga;
-                $totalOutlookChange = $records->sum(function ($record) {
-                    // $rc = collect($record->data)->firstWhere('key','change');
-                    // return intval($rc['outlook'] ?? 0);
-                     return collect($record->data)
-                        ->filter(fn($item) => $item['key'] === 'change')
-                        ->sum(fn($item) => intval($item['outlook'] ?? 0));
-                });
+               
+            
                 $totalChange = $records->sum(function ($record) {
                     // $rc = collect($record->data)->firstWhere('key','change');
                     // return intval($rc['value'] ?? 0);
@@ -230,16 +231,19 @@ class RecordController extends Controller
                         ->sum(fn($item) => intval($item['value'] ?? 0));
                 });
 
-             // Calculate percentage (handle division by zero)
-                $percentage = $totalOutlookChange != 0 
-                    ? ($totalChange / $totalOutlookChange) * 100 
-                    : 0;
+                $projectOutlook = $projectOutlooks->get($lga->id);
+                $outlookValue = $projectOutlook ? $projectOutlook->outlook : 0;
 
+             // Calculate percentage (handle division by zero)
+               $percentage = $outlookValue != 0 
+                ? ($totalChange / $outlookValue) * 100 
+                : 0;
                 return [
                     'lat' => $lga->latitude,
                     'lng' => $lga->longitude,
                     'change' => $totalChange,
-                    'outlook' => $totalOutlookChange,
+                    'outlook' => $outlookValue,
+                    'has_outlook' => $projectOutlook !== null,
                     'percentage' => round($percentage, 2),
                     'lga_name' => $lga->name,
                     'state_name' => $lga->state->name

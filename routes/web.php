@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\ProjectOutlookController;
 use App\Http\Controllers\RecordController;
 use App\Http\Controllers\UserController;
 use App\Models\Lga;
@@ -37,6 +38,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
 Route::get('/lgas/{lga}/wards', function (Lga $lga) {
     return $lga->wards;
 });
+// routes/web.php
+Route::resource('project-outlooks', ProjectOutlookController::class)
+    ->middleware(['auth', 'verified']);
 
 // routes/api.php
 Route::get('/wards', function (Request $request) {
