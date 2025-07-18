@@ -489,7 +489,7 @@ export default {
                             } else if (percentage >= 45) {
                             fillColor = '#FFB300'; // Amber
                             } else {
-                            fillColor = '#C41E3A'; // Red
+                            fillColor = '#DE0606'; // Red
                             }
                             // Determine whether to show state or LGA name
                             const showLabels = zoom >= 8; // Only show labels at certain zoom levels
