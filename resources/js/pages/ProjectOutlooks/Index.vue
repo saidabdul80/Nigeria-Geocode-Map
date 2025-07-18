@@ -248,7 +248,7 @@ const confirmDelete = (id) => {
         </div>
 
         <div class="flex flex-col gap-2">
-          <label for="outlook" class="font-medium">Outlook (%)</label>
+          <label for="outlook" class="font-medium">Outlook</label>
           <InputText 
             id="outlook"
             v-model="form.outlook" 
