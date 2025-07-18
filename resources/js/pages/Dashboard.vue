@@ -54,6 +54,7 @@ import { taraba } from './Utils/states/taraba';
 import { yobe } from './Utils/states/yobe';
 import { zamfara } from './Utils/states/zamfara';
 
+import { router } from '@inertiajs/vue3'
 const stateCoordinates = {
     nigeria: { center: [8.6753, 9.082], zoom: 6 },
     abia: { center: [7.4867, 5.532], zoom: 9 },
@@ -574,6 +575,18 @@ export default {
                     const feature = this.map.forEachFeatureAtPixel(evt.pixel, (f) => f);
                     if (feature?.get('admin1Pcod')) {
                         this.$emit('feature-clicked', { name: feature.get('NAME_1'), id: Number(feature.get('admin1Pcod').replace('NG', '')) });
+                    }
+                    const rename = {
+                        "federal capital territory" :"fct",
+                        "cross river":"crossriver",
+                        "akwa ibom":"akwaibom",
+                    }
+                    if(this.region == 'nigeria'){
+                        let stateName = feature.get('admin1RefN')?.toLowerCase();
+                        if(rename[stateName]){
+                            stateName = rename[stateName];
+                        }
+                        router.get('/dashboard/' + stateName)
                     }
 
                     if (feature) {
