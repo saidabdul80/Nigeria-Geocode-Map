@@ -267,7 +267,6 @@ class RecordController extends Controller
             // Turn off strict mode
             DB::statement('SET SESSION sql_mode = ""');
 
-
             $year = date('Y');
 
             $query = DB::table('records')
@@ -288,55 +287,49 @@ class RecordController extends Controller
                 $query->where('states.name', 'like', "%$stateSlug%");
             }
 
-            $query->selectRaw('
-                lgas.id as lga_id,
-                lgas.name as lga_name,
-                lgas.latitude as lat,
-                lgas.longitude as lng,
-                states.name as state_name,
-                states.id as state_id,
-                COALESCE(SUM(
-                    CASE 
-                        WHEN JSON_EXTRACT(records.data, "$[*].key") LIKE \'%"change"%\' 
-                        THEN JSON_EXTRACT(records.data, "$[*].value")
-                        ELSE 0 
-                    END
-                ), 0) as total_change,
-                COALESCE(project_outlooks.outlook, 0) as outlook
-            ');
+            $query->select(
+                'lgas.id as lga_id',
+                'lgas.name as lga_name',
+                'lgas.latitude as lat',
+                'lgas.longitude as lng',
+                'states.name as state_name',
+                'states.id as state_id',
+                DB::raw('project_outlooks.outlook as outlook'),
+                'records.data as record_data'
+            );
 
-            if ($state === 'nigeria') {
-                $query->groupBy('states.id');
-            } else {
-                $query->groupBy('lgas.id');
-            }
+            $records = $query->get();
 
-            $heatmapData = $query->get()->map(function ($item) {
-                $percentage = $item->outlook != 0
-                    ? ($item->total_change / $item->outlook) * 100
-                    : 0;
+            // Group by LGA and compute totals
+            $heatmapData = $records->groupBy('lga_id')->map(function ($group) {
+                $first = $group->first();
+
+                $totalChange = $group->sum(function ($record) {
+                    $data = json_decode($record->record_data, true) ?? [];
+                    return collect($data)->where('key', 'change')->sum('value');
+                });
+
+                $outlook = $first->outlook ?? 0;
+                $percentage = $outlook != 0 ? ($totalChange / $outlook) * 100 : 0;
 
                 return [
-                    'lat' => $item->lat,
-                    'lng' => $item->lng,
-                    'change' => $item->total_change,
-                    'outlook' => $item->outlook,
-                    'has_outlook' => $item->outlook != 0,
+                    'lat' => $first->lat,
+                    'lng' => $first->lng,
+                    'change' => $totalChange,
+                    'outlook' => $outlook,
+                    'has_outlook' => $outlook != 0,
                     'percentage' => round($percentage, 2),
-                    'lga_name' => $item->lga_name,
-                    'state_name' => $item->state_name,
+                    'lga_name' => $first->lga_name,
+                    'state_name' => $first->state_name,
                 ];
-            });
+            })->values();
 
+            DB::statement('SET SESSION sql_mode = "STRICT_TRANS_TABLES,STRICT_ALL_TABLES"');
             return Inertia::render('Dashboard', [
                 'region' => $state ?? '',
                 'heatData' => $heatmapData,
             ]);
 
-            // Turn on strict mode
-            DB::statement('SET SESSION sql_mode = "STRICT_TRANS_TABLES,STRICT_ALL_TABLES"');
-
-            return $result;
         } catch (\Exception $e) {
             // Handle any exceptions that occur during execution
             DB::statement('SET SESSION sql_mode = "STRICT_TRANS_TABLES,STRICT_ALL_TABLES"');
