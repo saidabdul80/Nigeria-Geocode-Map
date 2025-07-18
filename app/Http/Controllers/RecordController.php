@@ -18,7 +18,7 @@ class RecordController extends Controller
     use    AuthorizesRequests;
     public function index()
     {
-        
+
         $this->authorize('view_records');
 
         $query = Record::with(['state', 'lga'])
@@ -112,9 +112,9 @@ class RecordController extends Controller
         Record::updateOrCreate([
             'state_id' => $validated['state_id'],
             'lga_id' => $validated['lga_id'],
-            'ward_id' => $request->ward_id, 
+            'ward_id' => $request->ward_id,
             'year' => Carbon::now()->year
-        ],[ 'data' => $request->record]);
+        ], ['data' => $request->record]);
         return redirect()->route('records.index')
             ->with('success', 'Record created successfully.');
     }
@@ -150,12 +150,12 @@ class RecordController extends Controller
         ]);
 
         // Convert array of {key,value} objects to associative array
-    
+
 
         $record->update([
             'state_id' => $validated['state_id'],
             'lga_id' => $validated['lga_id'],
-            'ward_id' => $request->ward_id, 
+            'ward_id' => $request->ward_id,
             'data' => $request->record
         ]);
 
@@ -222,8 +222,8 @@ class RecordController extends Controller
 
     //     $heatmapData = $heatmapData->map(function ($records, $lgaId) use ($projectOutlooks) {
     //             $lga = $records->first()->lga;
-               
-            
+
+
     //             $totalChange = $records->sum(function ($record) {
     //                 // $rc = collect($record->data)->firstWhere('key','change');
     //                 // return intval($rc['value'] ?? 0);
@@ -252,7 +252,7 @@ class RecordController extends Controller
     //         })
     //         ->values()
     //         ->toArray();
-            
+
     //     return Inertia::render('Dashboard', [
     //         'region' => $state ?? '',
     //         'heatData' => $heatmapData,
@@ -260,8 +260,14 @@ class RecordController extends Controller
     // }
 
 
-        public function dashboard(Request $request, $state = null)
-        {
+    public function dashboard(Request $request, $state = null)
+    {
+
+        try {
+            // Turn off strict mode
+            DB::statement('SET SESSION sql_mode = ""');
+
+
             $year = date('Y');
 
             $query = DB::table('records')
@@ -326,6 +332,15 @@ class RecordController extends Controller
                 'region' => $state ?? '',
                 'heatData' => $heatmapData,
             ]);
-        }
 
+            // Turn on strict mode
+            DB::statement('SET SESSION sql_mode = "STRICT_TRANS_TABLES,STRICT_ALL_TABLES"');
+
+            return $result;
+        } catch (\Exception $e) {
+            // Handle any exceptions that occur during execution
+            DB::statement('SET SESSION sql_mode = "STRICT_TRANS_TABLES,STRICT_ALL_TABLES"');
+            throw $e;
+        }
+    }
 }
