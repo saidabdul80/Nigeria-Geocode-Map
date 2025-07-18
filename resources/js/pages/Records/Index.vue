@@ -240,13 +240,13 @@ const onPage = (event) => {
 </script>
 
 <template>
-  <AppLayout title="Weather Records">
+  <AppLayout title="Overview Records">
     <Toast />
     <ConfirmDialog />
 
     <template #header>
       <div class="flex justify-between items-center">
-        <h2 class="text-2xl font-bold">Weather Records</h2>
+        <h2 class="text-2xl font-bold">Project Records</h2>
         <Button 
           icon="pi pi-plus" 
           label="Add New Record" 
