@@ -224,6 +224,9 @@ export default {
         },
     },
     methods: {
+        goBack() {
+            router.get('/dashboard/nigeria')
+        },
         createHeatmapLayer(data) {
             const maxchange = Math.max(...data.map((item) => item.change || 1), 1);
             const features = data.map((item) => {
@@ -674,6 +677,15 @@ export default {
     <Head title="Dashboard" />
 
     <AppLayout :breadcrumbs="breadcrumbs">
+        <div v-if="region !== 'nigeria'" class="absolute top-4 left-4 z-50">
+            <button 
+                @click="goBack"
+                class="bg-white hover:bg-gray-100 text-gray-800 font-semibold py-2 px-4 border border-gray-400 rounded shadow"
+            >
+                ← Back to Nigeria
+            </button>
+        </div>
+        
         <div class="flex h-full flex-1 flex-col gap-4 overflow-x-auto rounded-xl p-4">
             <div id="map" ref="mapContainer" class="absolute cursor-pointer h-full w-full">
                 <!-- <div class="absolute glass bg-white h-[200px] right-4 top-4 w-[150px] text-gray-700 rounded-lg p-2">
