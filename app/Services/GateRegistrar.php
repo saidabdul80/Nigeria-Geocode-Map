@@ -12,53 +12,45 @@ class GateRegistrar
 {
     public static function register(): void
     {
+        // Admin bypass - keep existing functionality
         Gate::before(function (User $user, string $ability) {
             if ($user->hasRole('admin')) {
                 return true;
             }
         });
 
-        // Basic user management gates
-        Gate::define('manage_users', fn(User $user) => $user->hasPermission('manage_users'));
-
-        // Record management
-        Gate::define('view_records', fn(User $user) => $user->hasPermission('view_records'));
-        Gate::define('create_records', fn(User $user) => $user->hasPermission('create_records'));
-        Gate::define('edit_records', fn(User $user) => $user->hasPermission('edit_records'));
-        Gate::define('delete_records', fn(User $user) => $user->hasPermission('delete_records'));
-
-        // State-level permission
-        Gate::define('manage_state_records', function (User $user, State $state) {
-            return $user->hasPermission('manage_state_records') &&
-                   $user->statePermissions->contains($state);
-        });
-
-        // LGA-level permission
-        Gate::define('manage_lga_records', function (User $user, Lga $lga) {
-            return $user->hasPermission('manage_lga_records') &&
-                   $user->lgaPermissions->contains($lga);
-        });
-
-        // Ward-level permission
-        Gate::define('manage_ward_records', function (User $user, Ward $ward) {
-            return $user->hasPermission('manage_ward_records') &&
-                   (
-                       $user->wardPermissions->contains($ward) ||
-                       $user->lgaPermissions->contains($ward->lga) ||
-                       $user->statePermissions->contains($ward->lga->state)
-                   );
-        });
-
-        Gate::define('view_project_outlooks', fn(User $user) => $user->hasPermission('view_project_outlooks'));
-        Gate::define('create_project_outlooks', fn(User $user) => $user->hasPermission('create_project_outlooks'));
-        Gate::define('edit_project_outlooks', function (User $user, ProjectOutlook $outlook = null) {
-            return $user->hasPermission('edit_project_outlooks');
-        });
-        Gate::define('delete_project_outlooks', function (User $user, ProjectOutlook $outlook = null) {
-            return $user->hasPermission('delete_project_outlooks');
-        });
-
-        // Admin
-        Gate::define('is_admin', fn(User $user) => $user->hasRole('admin'));
+        // Use the new reusable permission services
+        $registry = PermissionRegistry::create();
+        
+        // Basic permissions
+        $registry
+            ->add(SimplePermissionService::create('manage_users'))
+            ->add(SimplePermissionService::create('view_records'))
+            ->add(SimplePermissionService::create('create_records'))
+            ->add(SimplePermissionService::create('edit_records'))
+            ->add(SimplePermissionService::create('delete_records'))
+            ->add(SimplePermissionService::create('is_admin'));
+        
+        // Hierarchical location permissions
+        $registry
+            ->add(new StatePermissionService())
+            ->add(new LgaPermissionService())
+            ->add(new WardPermissionService());
+        
+        // Project outlook permissions
+        $registry
+            ->add(SimplePermissionService::create('view_project_outlooks'))
+            ->add(SimplePermissionService::create('create_project_outlooks'))
+            ->add(ResourcePermissionService::create(
+                'edit_project_outlooks',
+                ProjectOutlook::class
+            ))
+            ->add(ResourcePermissionService::create(
+                'delete_project_outlooks', 
+                ProjectOutlook::class
+            ));
+        
+        // Register all services
+        $registry->register();
     }
 }

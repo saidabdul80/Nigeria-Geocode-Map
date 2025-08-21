@@ -36,3 +36,6 @@ export interface User {
 }
 
 export type BreadcrumbItemType = BreadcrumbItem;
+
+// Re-export entity types for convenience
+export * from './entities';
